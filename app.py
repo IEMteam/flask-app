@@ -12,8 +12,8 @@ app = Flask(__name__)
 pdf_text = ""
 
 # 解析 PDF 文件
-def extract_text_from_pdf(pdf_file_path):
-    reader = PdfReader(pdf_file_path)
+def extract_text_from_pdf(pdf_file):
+    reader = PdfReader(pdf_file)
     text = ""
     for page in reader.pages:
         text += page.extract_text()
@@ -39,18 +39,19 @@ def find_answer(question, pdf_text):
 
     return best_match if best_match_score > 0 else "無法找到與此問題相關的答案。"
 
-# 加載 PDF 檔案並儲存文本（在應用啟動時）
-def load_pdf_file():
-    global pdf_text
-    pdf_text = extract_text_from_pdf('your_pdf_file.pdf')  # 替換為你的 PDF 文件路徑
+# 加載 PDF 文件
+with open('your_pdf_file.pdf', 'rb') as f:
+    pdf_text = extract_text_from_pdf(f)
+
+# 根路由
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 # 接收問題並根據上傳的 PDF 查找答案
 @app.route('/ask', methods=['POST'])
 def ask_question():
     global pdf_text
-
-    if not pdf_text:
-        return jsonify({"error": "尚未加載任何 PDF 文件"}), 400
 
     data = request.json
     question = data.get('question', '')
@@ -61,12 +62,5 @@ def ask_question():
     answer = find_answer(question, pdf_text)
     return jsonify({"answer": answer})
 
-# 新增根路由
-@app.route('/')
-def home():
-    return render_template('index.html')  # 使用 render_template 加載 HTML 模板
-
 if __name__ == '__main__':
-    load_pdf_file()  # 在啟動時加載 PDF 文件
-    app.run(host='0.0.0.0', port=5000, debug=True)  # 允許從任何 IP 訪問
-
+    app.run(debug=True)
